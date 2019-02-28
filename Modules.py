@@ -58,8 +58,8 @@ class Transcribe:
         """
         try:
             fileName = Tools.getFirstFile("transcripts")
-            while(len(fileName > 0)):
-                parsedContent = ParseText.fileTranscriptionContent()
+            while(len(fileName) > 0):
+                parsedContent = ParseText.fileTranscriptionContent("./transcripts/" + fileName)
                 if(parsedContent):
                     subprocess.run("rm ./transcripts/" + fileName, shell=True)      # remove the file once we have the content
                     uploadResult = DatabaseInteract.uploadTranscriptionData(dbConnection, parsedContent[0], parsedContent[1], parsedContent[2], parsedContent[3])

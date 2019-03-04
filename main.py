@@ -1,21 +1,21 @@
 import Modules
 import re
 import psycopg2
-
+import time
 
 conn = psycopg2.connect(host="localhost",database="ditto", user="localrole", password="Noderink1")
 
 Modules.Transcribe.updateScript(conn)
 # conn.close()
-Transcribe.resetScript(conn, 12)
+Modules.Transcribe.resetScript(conn, 12)
 minsPassed = 0
 while(True):
-    Transcribe.runAutoCheck(conn, 12)
+    Modules.Transcribe.runAutoCheck(conn, 12)
     time.sleep(60)
     minsPassed += 1
     # run reset script every 8 hours
     if(minsPassed % 480 == 0):
-        Transcribe.resetScript(conn, 12)
+        Modules.Transcribe.resetScript(conn, 12)
 
 # conn.close()
 

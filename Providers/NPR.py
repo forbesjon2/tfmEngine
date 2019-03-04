@@ -37,8 +37,8 @@ def getXML(url):
         Modules.Tools.writeException("NPR getXML", e)
 
 
-def downloadMp3(url):
-    proc = subprocess.Popen("wget -c -O ./podcasts/" + filename + ".mp3 " + url, shell=True)
+def downloadMp3(url, fileName):
+    proc = subprocess.Popen("wget -c -O ./podcasts/" + fileName + ".mp3 " + url, shell=True)
     if(proc.wait() != 0):
         Modules.Tools.writeException("NPR download", "proc.wait() returned an exception")
     # wait 2 mins

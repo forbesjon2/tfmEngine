@@ -50,6 +50,6 @@ def downloadMp3(url, fileName):
     
     this then calls convertToWav to convert the file into the correct format
     """
-    proc = subprocess.Popen("wget -c -O ./podcasts/" + filename + ".mp3 " + url, shell=True)
+    proc = subprocess.Popen("wget -c -O ./podcasts/" + fileName + ".mp3 " + url, shell=True)
     if(proc.wait() != 0):
         Modules.Tools.writeException("Omny download", "proc.wait() returned an exception")

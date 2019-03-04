@@ -40,9 +40,9 @@ def getXML(url):
         Modules.Tools.writeException("JoeRogan getXML", e)
 
 
-def downloadMp3(url):
+def downloadMp3(url, fileName):
     # "http://traffic.libsyn.com/joeroganexp/p1255.mp3"
-    proc = subprocess.Popen("wget -c -O ./podcasts/" + filename + ".mp3 " + url, shell=True)
+    proc = subprocess.Popen("wget -c -O ./podcasts/" + fileName + ".mp3 " + url, shell=True)
     if(proc.wait() != 0):
         Modules.Tools.writeException("JoeRogan download", "proc.wait() returned an exception")
     time.sleep(180)

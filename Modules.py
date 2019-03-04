@@ -32,8 +32,9 @@ class Transcribe:
             fileName = str(fileContent[1]).replace(" ", "x").replace("/", "y").replace("\\", "z")
             service = str(fileContent[3])
             podcastName = fileContent[2]
-            Tools.downloadMp3(url, fileName)                            # download the mp3
-            Tools.convertToWav(fileName)                                # convert it to wav and delete the file
+            Tools.downloadMp3(url, fileName)                            # download the mp3 will print when done
+            resbool = Tools.convertToWav(fileName)                                # convert it to wav and delete the file
+            print("convert to wav resp " + str(resbool))
             Tools.runTranscription(fileName)
 
 
@@ -184,9 +185,7 @@ class Tools:
         """
         try:
             if(Tools.numRunningProcesses() == 0):
-                process = subprocess.Popen(['rm', '-r', './' + folderName + '/*'])
-                if process.wait() != 0:
-                    Tools.writeException("cleanupFolder", "ERROR happened when using the process.wait() statement")
+                process = subprocess.call(['rm', '-r', './' + folderName + '/*'])
                 return True
             else:
                 return False
@@ -201,12 +200,8 @@ class Tools:
         """
         try:
             # POSSIBLE EXCEPTION. spaces between -ac 1?
-            processOne = subprocess.Popen(['ffmpeg', '-i', './podcasts/' + fileName + '.mp3', '-acodec pcm_s16le', '-ac 1', '-ar 8000', './podcasts/' + fileName + '.wav'])
-            if processOne.wait() != 0:
-                Tools.writeException("convertToWav", "ERROR happened when using the process.wait() statement (process one)")
-            processTwo = subprocess.Popen(['rm', './podcasts/' + fileName + '.mp3'])
-            if processTwo.wait() != 0:
-                Tools.writeException("convertToWav", "ERROR happened when using the process.wait() statement (process two)")
+            subprocess.call(['ffmpeg', '-i', './podcasts/' + fileName + '.mp3', '-acodec pcm_s16le', '-ac 1', '-ar 8000', './podcasts/' + fileName + '.wav'])
+            subprocess.call(['rm', './podcasts/' + fileName + '.mp3'])
             return True
         except Exception as e:
             Tools.writeException("convertToWav",e)
@@ -266,9 +261,7 @@ class Tools:
         in array format because we are running this script in the background. Doing it so will make proc.wait() 
         functional
         """
-        proc = subprocess.Popen(['wget', '-c', '-O', './podcasts/' + fileName + '.mp3', url])
-        if(proc.wait() != 0):
-            Modules.Tools.writeException("downloadMp3", "proc.wait() returned an exception")
+        subprocess.call(['wget', '-c', '-O', './podcasts/' + fileName + '.mp3', url])
         print("finished download")
 
 

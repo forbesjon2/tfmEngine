@@ -266,9 +266,10 @@ class Tools:
         in array format because we are running this script in the background. Doing it so will make proc.wait() 
         functional
         """
-        proc = subprocess.Popen(['wget', '-c', '-O', './podcasts/' + fileName + '.mp3', url)
+        proc = subprocess.Popen(['wget', '-c', '-O', './podcasts/' + fileName + '.mp3', url])
         if(proc.wait() != 0):
             Modules.Tools.writeException("downloadMp3", "proc.wait() returned an exception")
+        print("finished download")
 
 
 

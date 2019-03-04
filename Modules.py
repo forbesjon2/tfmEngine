@@ -183,7 +183,7 @@ class Tools:
         """
         try:
             if(Tools.numRunningProcesses() == 0):
-                process = subprocess.Popen("rm -r ./" + folderName + "/*", shell=True)
+                process = subprocess.Popen("rm -r ./" + folderName + "/*")
                 if process.wait() != 0:
                     Tools.writeException("cleanupFolder", "ERROR happened when using the process.wait() statement")
                 return True
@@ -199,10 +199,10 @@ class Tools:
         the argument requires the filename is without the .mp3 part. This properly converts the .mp3 to .wav with the proper format for aspire models
         """
         try:
-            processOne = subprocess.Popen("ffmpeg -i ./podcasts/" + fileName + ".mp3 -acodec pcm_s16le -ac 1 -ar 8000 ./podcasts/" + fileName + ".wav", shell=True)
+            processOne = subprocess.Popen("ffmpeg -i ./podcasts/" + fileName + ".mp3 -acodec pcm_s16le -ac 1 -ar 8000 ./podcasts/" + fileName + ".wav")
             if processOne.wait() != 0:
                 Tools.writeException("convertToWav", "ERROR happened when using the process.wait() statement (process one)")
-            processTwo = subprocess.Popen("rm ./podcasts/" + fileName + ".mp3", shell=True)
+            processTwo = subprocess.Popen("rm ./podcasts/" + fileName + ".mp3")
             if processTwo.wait() != 0:
                 Tools.writeException("convertToWav", "ERROR happened when using the process.wait() statement (process two)")
             return True

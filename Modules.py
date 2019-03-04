@@ -201,7 +201,7 @@ class Tools:
         """
         try:
             # POSSIBLE EXCEPTION. spaces between -ac 1?
-            processOne = subprocess.Popen(['ffmpeg', '-i', './podcasts/' + fileName + '.mp3', '-acodec', 'pcm_s16le', '-ac', '1', '-ar', '8000', './podcasts/' + fileName + '.wav'])
+            processOne = subprocess.Popen(['ffmpeg', '-i', './podcasts/' + fileName + '.mp3', '-acodec pcm_s16le', '-ac 1', '-ar 8000', './podcasts/' + fileName + '.wav'])
             if processOne.wait() != 0:
                 Tools.writeException("convertToWav", "ERROR happened when using the process.wait() statement (process one)")
             processTwo = subprocess.Popen(['rm', './podcasts/' + fileName + '.mp3'])

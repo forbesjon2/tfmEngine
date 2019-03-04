@@ -27,8 +27,6 @@ class Transcribe:
         fileContent = DatabaseInteract.checkPre(dbConnection)
         if(len(fileContent) > 0 and Tools.numRunningProcesses() < maxConcurrent):
             url = fileContent[0]
-            subprocess.call("printf \"URL: " + fileContent[0] + "\n\n\"", shell=True)
-            subprocess.call("printf \"TITLE: " + fileContent[1] + "\n\n\"", shell=True)
             fileName = str(fileContent[1]).replace(" ", "x").replace("/", "y").replace("\\", "z")
             service = str(fileContent[3])
             podcastName = fileContent[2]

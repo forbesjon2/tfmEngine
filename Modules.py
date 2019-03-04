@@ -185,7 +185,7 @@ class Tools:
         """
         try:
             if(Tools.numRunningProcesses() == 0):
-                process = subprocess.call(['rm', '-r', './' + folderName + '/*'], shell=True)
+                process = subprocess.call('rm -r ./' + folderName + '/*', shell=True)
                 return True
             else:
                 return False
@@ -200,8 +200,8 @@ class Tools:
         """
         try:
             # POSSIBLE EXCEPTION. spaces between -ac 1?
-            subprocess.call(['ffmpeg', '-i', './podcasts/' + fileName + '.mp3', '-acodec pcm_s16le', '-ac 1', '-ar 8000', './podcasts/' + fileName + '.wav'], shell=True)
-            subprocess.call(['rm', './podcasts/' + fileName + '.mp3'], shell=True)
+            subprocess.call("ffmpeg -i ./podcasts/" + fileName + ".mp3 -acodec pcm_s16le -ac 1 -ar 8000 ./podcasts/" + fileName + ".wav", shell=True)
+            subprocess.call("rm ./podcasts/" + fileName + ".mp3", shell=True)
             return True
         except Exception as e:
             Tools.writeException("convertToWav",e)
@@ -261,7 +261,7 @@ class Tools:
         in array format because we are running this script in the background. Doing it so will make proc.wait() 
         functional
         """
-        subprocess.call(['wget', '-c', '-O', './podcasts/' + fileName + '.mp3', url], shell=True)
+        subprocess.call('wget -c -O ./podcasts/' + fileName + '.mp3 ' + url, shell=True)
         print("finished download")
 
 

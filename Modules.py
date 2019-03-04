@@ -32,7 +32,7 @@ class Transcribe:
             fileName = str(fileContent[1]).replace(" ", "x").replace("/", "y").replace("\\", "z")
             service = str(fileContent[3])
             podcastName = fileContent[2]
-            Tools.downloadMp3(url, fileName)                            # download the mp3 will print when done
+            Tools.downloadMp3(service, url, fileName)                            # download the mp3 will print when done
             resbool = Tools.convertToWav(fileName)                                # convert it to wav and delete the file
             print("convert to wav resp " + str(resbool))
             Tools.runTranscription(fileName)
@@ -252,7 +252,7 @@ class Tools:
             return fileName
         else:
             return False
-    def downloadMp3(url, fileName):
+    def downloadMp3(service, url, fileName):
         """
         downloads the mp3 from the url (doesn't include .mp3) 
         to a file in the podcasts folder with the .mp3 tag (does not initially include .mp3).\n\n 
@@ -261,6 +261,9 @@ class Tools:
         in array format because we are running this script in the background. Doing it so will make proc.wait() 
         functional
         """
+        if(service == "omny.fm"):
+            url = url + ".mp3"
+        print("getting with url = " + url )
         subprocess.call('wget -c -O ./podcasts/' + fileName + '.mp3 ' + url, shell=True)
         print("finished download")
 

@@ -1,30 +1,38 @@
-import psycopg2
-from Modules import Omny, DatabaseInteract, Transcribe, Tools, ParseText
-import time
+import Modules
 import re
-
-
-def seedFromFiles():
-    clipContent = Omny.getFile("./seeds/exampleClips.json")
-    headerContent = Omny.getFile("./seeds/exampleHeader.json")
-    clipArray = Omny.parseInit(clipContent, "Clips")
-    DatabaseInteract.insertHeader(conn, headerContent)
-    DatabaseInteract.insertClips(conn, clipArray)
-
+import psycopg2
 
 
 conn = psycopg2.connect(host="localhost",database="ditto", user="localrole", password="Noderink1")
 
-Transcribe.resetScript(conn, 12)
-minsPassed = 0
-while(True):
-    Transcribe.runAutoCheck(conn, 12)
-    time.sleep(60)
-    minsPassed += 1
-    # run reset script every 8 hours
-    if(minsPassed % 480 == 0):
-        Transcribe.resetScript(conn, 12)
+Modules.Transcribe.updateScript(conn)
+# conn.close()
+# Transcribe.resetScript(conn, 12)
+# minsPassed = 0
+# while(True):
+# 	Transcribe.runAutoCheck(conn, 12)
+# 	time.sleep(60)
+#     minsPassed += 1
+#     # run reset script every 8 hours
+#     if(minsPassed % 480 == 0):
+#         Transcribe.resetScript(conn, 12)
         
+# conn.close()
+
+
+#Modules.Transcribe.parseNohup(conn)
+
 conn.close()
+# filename = "tt"
+# import subprocess
+# url = "http://traffic.libsyn.com/joeroganexp/p1255.mp3"
+
+# proc = subprocess.Popen("wget -c -O ./" + filename + ".mp3 " + url, shell=True)
+# if(proc.wait() != 0):
+#     print("of erro.s")
+# print("hey fuck")
+
+
+
 
 

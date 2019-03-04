@@ -9,6 +9,10 @@ import urllib3
 urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 from shutil import copyfileobj
 import time
+import xml.etree.cElementTree as etree
+import ResolveRouter
+
+
 
 class Transcribe:
     def runAutoCheck(dbConnection, maxConcurrent):
@@ -23,20 +27,32 @@ class Transcribe:
         fileContent = DatabaseInteract.checkPre(dbConnection)
         if(len(fileContent) > 0 and Tools.numRunningProcesses() < maxConcurrent):
             url = fileContent[0]
-            fileName = str(fileContent[1]).replace(" ", "x").replace("/", "x").replace("\\", "x") 
+            subprocess.Popen("printf \"URL: " + fileContent[0] + "\n\n\"", shell=True)
+            subprocess.Popen("printf \"TITLE: " + fileContent[1] + "\n\n\"", shell=True)
+            fileName = str(fileContent[1]).replace(" ", "x").replace("/", "y").replace("\\", "z")
+            service = str(fileContent[3])
             podcastName = fileContent[2]
-            fileInit= open("./transcripts/" + fileName + ".txt", "w")
-            fileInit.write("URL:" + url + "\n")
-            fileInit.close()
-            soup = ResolveRouter.getContent(podcastName, url, False)    # get the webpage in beautifulsoup format
-            description = ResolveRouter.getDescription(soup)                     # parse the description (as soup^)
-            DatabaseInteract.updateDescription(dbConnection, description, url) # upload the description
-            song = Tools.downloadMp3(url, fileName)                     # download the mp3
+            song = ResolveRouter.downloadMp3(podcastName, service, url, fileName)   # download the mp3
             Tools.convertToWav(fileName)                                # convert it to wav and delete the file
-            Tools.runTranscription(fileName)                            # runs the transcription and writes results to ./transcripts
+            Tools.runTranscription(fileName)
 
 
 
+    def updateScript(dbconnection):
+        """
+        scans all rss feeds for new
+        """
+        cursor = dbconnection.cursor()
+        cursor.execute("select rss, name, source from podcasts;")
+        rssArray = cursor.fetchall()
+        for rss in rssArray:
+            url = str(rss[0])
+            name = str(rss[1])
+            source = str(rss[2])
+            rssArray = ResolveRouter.parseXML(name, source, url)
+            for item in rssArray:
+                if(DatabaseInteract.checkIfExists(dbconnection, item[0]) == False):
+                    DatabaseInteract.insertClip(dbconnection, item[2], name, item[3], item[1], item[0])
 
     def resetScript(dbConnection, maxConcurrent):
         """
@@ -47,73 +63,25 @@ class Transcribe:
         while (Tools.numRunningProcesses() != 0):                       # wait for the transcriptions to end. Pings every 2 mins
             time.sleep(120)
         emptyPodcastFolder = Tools.cleanupFolder("podcasts")
-        emptyTranscriptionFolder = Transcribe.parseUploadTranscripts(dbConnection)
-        if(emptyPodcastFolder and emptyTranscriptionFolder):
-            DatabaseInteract.refreshDatabase(dbConnection)
         
-    def parseUploadTranscripts(dbConnection):
-        """
-        This runs through the process of...
-        Getting the first file in the transcripts folder and parsing it
-        Uploading the parsed file to the database
-        """
-        try:
-            fileName = Tools.getFirstFile("transcripts")
-            while(len(fileName) > 0):
-                parsedContent = ParseText.fileTranscriptionContent("./transcripts/" + fileName)
-                if(parsedContent):
-                    process = subprocess.Popen("rm ./transcripts/" + fileName, shell=True)      # remove the file once we have the content
-                    if process.wait() != 0:
-                       Tools.writeException("parseUploadTranscripts", "ERROR happened when using the process.wait() statement")
-                    uploadResult = DatabaseInteract.uploadTranscriptionData(dbConnection, parsedContent[0][0], parsedContent[1][0], parsedContent[2])
-                else:
-                    Tools.writeException("parseUploadTranscripts", "ERROR getting the parsedContent from file ./transcripts/" + fileName +"\nERROR got '" + str(parsedContent) + "' instead")
-                    return False
-        except Exception as e:
-            Tools.writeException("parseUploadTranscripts", e)
-        return False
-            
-    # def parseUploadNohup(dbConnection):
-    #     """
-    #     This runs through the process of...
-    #     Reading nohup.out and getting all instances of transcripted files 
-    #     then uploading it to the database and then deleting nohup.out if successful.
-    #     This is meant to be modified with different podcasts. \n\n
-    #         but seriously nohup is a really bad place to store transcripts
-    #     """
-    #     try:
-    #         resultArray = ParseText.nohupTranscriptionContent("nohup.out")
-    #         for index in range(len(resultArray[0])):
-    #             rtf = resultArray[0][index]
-    #             transcription = resultArray[1][index].replace("'", "''")
-    #             name = re.sub(r'[^1234567890x]', "", resultArray[2][index])
-    #             name = name.replace("xxx", "").replace("xx", "").replace("x","/")
-    #             DatabaseInteract.uploadTranscriptionDataModified(dbConnection, , rtf, transcription)
-    #     except Exception as e:
-    #         Tools.writeException("parseUploadNohup", e)
-            
+        DatabaseInteract.refreshDatabase(dbConnection)
+        ParseText.nohupTranscriptionContent("transcriptions.txt")
+
+    def parseNohup(dbconnection):
+        nhContent = Modules.ParseText.nohupTranscriptionContent("./nohup.out")
+        count = 0
+        cursor = dbconnection.cursor()
+        while count < len(nhContent[0]):
+            rtf = nhContent[0][count]
+            transcription = nhContent[1][count]
+            date = Tools.parseWavToDate(str(nhContent[2][count]))
+            cursor.execute("UPDATE FROM transcriptions SET transcription = '" + transcription + "', realtimefactor = '" + rtf + "' WHERE DATE = '" + date +"';")
+            dbconnection.commit()
+            count += 1
+        cursor.close()
 
 
-class ResolveRouter:
-    """
-    The functions in this class are functions that require specific set of operations for a
-    certain action and all require 'podcastname' as the first argument. This must be updated 
-    every time podcast is added. (the number of podcast entries in the database must equal
-    the number of cases in the respective switch case in this class)
-    """
-    def getContent(podcastName, url, False):
-        """
-        routes get content 
-        """
-        if(podcastName == "Mark Levin Audio Rewind"):
-            return Omny.getContent(url, False)
-    
-    def getDescription(podcastName, soup):
-        """
-        routes get description
-        """
-        if(podcastName == "Mark Levin Audio Rewind"):
-            return Omny.getDescription(soup)
+
 
 
 class ParseText:
@@ -202,6 +170,11 @@ class Tools:
     """
     Random functions 
     """
+    def parseWavToDate(wavString):
+        preParse = wavString.replace("./podcasts/", "").replace(".wav","")
+        dateStr = re.findall(r'\d?\dx\d\d?x\d\d', preParse)
+        dateStr = dateStr[0].replace("x", "-")
+        return dateStr
     def cleanupFolder(folderName):
         """
         deletes all contents of the specified folder (but not the folder itself).\n
@@ -209,7 +182,7 @@ class Tools:
         processes is not = 0
         """
         try:
-            if(Tools.numRunningProcesses == 0):
+            if(Tools.numRunningProcesses() == 0):
                 process = subprocess.Popen("rm -r ./" + folderName + "/*", shell=True)
                 if process.wait() != 0:
                     Tools.writeException("cleanupFolder", "ERROR happened when using the process.wait() statement")
@@ -220,30 +193,18 @@ class Tools:
             Tools.writeException("cleanupFolder", e)
         return False
 
-
-    def downloadMp3(url, fileName):
-        """
-        downloads the mp3 from the url (doesn't include .mp3) 
-        to a file in the podcasts folder with the .mp3 tag (does not initially include .mp3).\n\n 
-        
-        this then calls convertToWav to convert the file into the correct format
-        """
-        try:
-            with urllib3.PoolManager().request("GET", url + ".mp3", preload_content=False) as resp, open("./podcasts/" + fileName + ".mp3", 'wb') as out_file:
-                copyfileobj(resp, out_file)
-            resp.release_conn()
-            return True
-        except:
-            return False
-
     
     def convertToWav(fileName):
         """
         the argument requires the filename is without the .mp3 part. This properly converts the .mp3 to .wav with the proper format for aspire models
         """
         try:
-            subprocess.run("ffmpeg -i ./podcasts/" + fileName + ".mp3 -acodec pcm_s16le -ac 1 -ar 8000 ./podcasts/" + fileName + ".wav", shell=True)
-            subprocess.run("rm ./podcasts/" + fileName + ".mp3", shell=True)
+            processOne = subprocess.Popen("ffmpeg -i ./podcasts/" + fileName + ".mp3 -acodec pcm_s16le -ac 1 -ar 8000 ./podcasts/" + fileName + ".wav", shell=True)
+            if processOne.wait() != 0:
+                Tools.writeException("convertToWav", "ERROR happened when using the process.wait() statement (process one)")
+            processTwo = subprocess.Popen("rm ./podcasts/" + fileName + ".mp3", shell=True)
+            if processTwo.wait() != 0:
+                Tools.writeException("convertToWav", "ERROR happened when using the process.wait() statement (process two)")
             return True
         except Exception as e:
             Tools.writeException("convertToWav",e)
@@ -255,7 +216,7 @@ class Tools:
         runs the transcription given the .wav file name. The wav must have the correct .wav format and is in 8000khz (?)
         """
         try:
-            subprocess.Popen("nohup ./online2-wav-nnet3-latgen-faster --online=false --do-endpointing=false --frame-subsampling-factor=3 --config=online.conf --max-active=7000 --beam=15.0 --lattice-beam=6.0 --acoustic-scale=1.0 --word-symbol-table=words.txt final.mdl HCLG.fst 'ark:echo utterance-id1 utterance-id1|' 'scp:echo utterance-id1 ./podcasts/" + fileName + ".wav|' 'ark:/dev/null' >> ./transcripts/" + fileName + ".txt &", shell=True)
+            subprocess.Popen("nohup ./online2-wav-nnet3-latgen-faster --online=false --do-endpointing=false --frame-subsampling-factor=3 --config=online.conf --max-active=7000 --beam=15.0 --lattice-beam=6.0 --acoustic-scale=1.0 --word-symbol-table=words.txt final.mdl HCLG.fst 'ark:echo utterance-id1 utterance-id1|' 'scp:echo utterance-id1 ./podcasts/" + fileName + ".wav|' 'ark:/dev/null'" + fileName + ".txt &", shell=True)
             return True
         except Exception as e:
             Tools.writeException("runTranscription",e)
@@ -305,24 +266,24 @@ class DatabaseInteract:
     Seeding the database would include the usage of 'insertHeader' then 'insertClips'. Pretty much every 
     function in here will require a dbConnection argument
     """
-    def insertHeader(dbConnection, content):
+    def podcastInit(dbConnection, homepage, name, description, category, source, imageurl, web, twitter, facebook, rss):
         """
-        Inserts a header for a podcast. Needs to be completed before insertClips
-        is started \n\n
-        Needs data for --> Homepage, Name, Description, Category, Source, SocialWeb, twitter, Facebook\n
-        Returns true if successful or false if not
+        HomePage --> the homepage of the podcast (NOT NULL)\n
+        Name --> The name of the podcast (NOT NULL)\n
+        Description --> a short description of the podcast\n
+        Category --> The category of the podcast\n
+        Source --> The service of which the podcast is being accessed through\n
+        ImageURI --> Podcast cover art\n
+        Web --> The website of the podcaster\n
+        Twitter --> The twitter account of the podcaster\n
+        Facebook --> the facebook account of the podcaster\n
+        LastUpdated --> the date that this was last updated.\n
+        RSS --> The URL of the podcasts RSS feed\n
+            If you dont have values for a certain field just pass it in as an empty string
         """
         try:
-            Homepage = Omny.parseInit(content, "HomePage")
-            Name = Omny.parseInit(content, "Name")
-            Description = Omny.parseInit(content, "Description")
-            Category =  Omny.parseInit(content, "Category")
-            Source = Omny.parseInit(content, "Source")
-            Web = Omny.parseInit(content, "Web")
-            Facebook = Omny.parseInit(content, "twitter")
-            twitter = Omny.parseInit(content, "Facebook")
             cursor = dbConnection.cursor()
-            cursor.execute("""INSERT INTO podcasts(homepage, name, description, category, source, imageuri, web, twitter, Facebook, lastupdated) VALUES(%s, %s, %s, %s, %s, NULL, %s, %s, %s, NULL);""", (Homepage, Name, Description, Category, Source, Web, twitter, Facebook,))
+            cursor.execute("""INSERT INTO podcasts(homepage, name, description, category, source, imageuri, web, twitter, Facebook, rss) VALUES(%s, %s, %s, %s, %s, %s, %s, %s, %s, %s);""", (homepage, name, description, category, source, imageurl, web, twitter, facebook, rss))
             dbConnection.commit()
             cursor.close()
             return True
@@ -331,23 +292,20 @@ class DatabaseInteract:
         return False
 
 
-    def insertClips(dbConnection, content):
+    def insertClip(dbConnection, audiourl, podcastName, description, parsedDate, title):
         """
-        Insert clips. Cant do this without 'Podcast' exsiting because
-        of foreign key reasons\n
-        returns true if successful or false if not.
+        audiourl --> url of the transcriptions mp3 is stored here (NOT NULL)\n
+        PodcastName --> THe name of the show (references podcast(name))\n
+        Description --> The provided summary of that days podcast\n
+        Date --> The date that podcast aired (parsed to mm-dd-yyyy\n
+        Title --> The title of that specific podcast\n
+        Duration --> the running time of that podcast (use strptime to parse, need mm-dd-yyyy\n
+        pending --> right now will be false because were not transcribing\n
+        (dateTranscribed) --> date of transcription (updated later)\n
         """
         try:
             cursor = dbConnection.cursor()
-            for item in content:
-                podcastName = Omny.parseInit(item, "PodcastName")
-                Title = Omny.parseInit(item, "Title")
-                AudioUrl = Omny.parseInit(item, "AudioUrl")
-                Date = Omny.parseInit(item, "Date").split(" ")
-                Duration = Omny.parseInit(item, "Duration")
-                stripTime = datetime.strptime(Date[0] + " " + Date[1] + " " +  Date[2], "%b %d, %Y")
-                parsedDate = str(stripTime.month) + "-" + str(stripTime.day) + "-" + str(stripTime.year)
-                cursor.execute("INSERT INTO transcriptions(audiourl, realtimefactor, podcastname, transcription, description, date, title, duration, pending, datetranscribed) VALUES('" + AudioUrl + "', NULL, '" + podcastName + "', NULL, NULL, '" + parsedDate + "', '" + Title + "', '" + Duration + "', FALSE, NULL);")
+            cursor.execute("INSERT INTO transcriptions(audiourl, realtimefactor, podcastname, transcription, description, date, title, pending, datetranscribed) VALUES('" + audiourl + "', NULL, '" + podcastName + "', NULL, '" + description + "', '" + parsedDate + "', '" + title + "', FALSE, NULL);")
             dbConnection.commit()
             cursor.close()
             return True
@@ -356,27 +314,29 @@ class DatabaseInteract:
         return False
     
 
-    def updateDescription(dbConnection, description, audiourl):
-        """
-        updates the description given the audiourl & the description you want to update it to
-        """
-        try:
-            cursor = dbConnection.cursor()
-            parsedDescription = description.replace("'", "''")
-            cursor.execute("UPDATE transcriptions SET description = '" + parsedDescription + "' WHERE audiourl = '" + audiourl + "';")
-            dbConnection.commit()
-            cursor.close()
-            return True
-        except Exception as e:
-		        Tools.writeException("updateDescription", e)
-        return False
-    
-    
-    def uploadTranscriptionData(dbConnection, url, realtimefactor, transcription):
+    def insertTranscription(dbConnection, url, realtimefactor, transcription, duration):
         """
         This is to be used after the parseTranscriptionContent function if it was successful.
         \n\nIt basically uploads the arguents to the database, returning false and throwing an 
         error if unsuccesful (or true otherwise)\n
+        """
+        try:
+            cursor = dbConnection.cursor()
+            cursor.execute("UPDATE transcriptions SET realtimefactor = '" + realtimefactor + "', transcription = '" + transcription + "', datetranscribed = now() WHERE audiourl = '" + url + "';")
+            dbConnection.commit()
+            cursor.close()
+            return True
+        except Exception as e:
+            Tools.writeException("uploadTranscriptionData", e)
+        return False
+
+
+    def insertTranscriptionWithTime(dbConnection, url, realtimefactor, transcription, transcriptionTime):
+        """
+        This is to be used after the parseTranscriptionContent function if it was successful.
+        \n\nIt basically uploads the arguents to the database, returning false and throwing an 
+        error if unsuccesful (or true otherwise)\n
+            N
         """
         try:
             cursor = dbConnection.cursor()
@@ -397,9 +357,10 @@ class DatabaseInteract:
         index 0 -- audiourl\n
         index 1 -- title\n
         index 2 -- podcast name\n
+        index 3 -- service of podcast
         """
         cursor = dbConnection.cursor()
-        cursor.execute("SELECT audiourl, title, podcastName FROM transcriptions WHERE COALESCE(description, '') = '' AND pending = FALSE LIMIT 1;")
+        cursor.execute("SELECT audiourl, title, podcastName, source FROM transcriptions AS T JOIN podcasts as P ON P.name = T.podcastname WHERE COALESCE(T.description, '') = '' AND pending = TRUE LIMIT 1;")
         entry = cursor.fetchone()
         cursor.close()
         cursor = dbConnection.cursor()
@@ -423,86 +384,30 @@ class DatabaseInteract:
             cursor.close()
         except Exception as e:
             Tools.writeException("refreshDatabase", e)
-        
 
-
-
-
-class Omny:
-    """
-    This class tracks the fields required to populate both the 'Podcasts' and the basic elements
-    for the 'transctiptions' table in the database
-    """
-    def getContent(url, replaceHeader):
-        """ 
-        This class makes the URL request and returns a slightly more cleaned
-        up version of the content. \n\n
-        
-        The content still includes the header so the next step is using either
-        the 'parse' or 'parseAfterHeader' function.
+    def checkIfExists(dbconnection, title):
         """
+        given title, if the podcast is in the database already return true. False if
+        the podcast does not exist in the database
+        """
+        cursor = dbconnection.cursor()
+        output = ""
         try:
-            headers = {'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/64.0.3282.140 Safari/537.36 Edge/18.17763', 'Host': 'omny.fm'}
-            req = requests.get(url, headers=headers)
-            soup = BeautifulSoup(req.text, 'html.parser')
-            if(replaceHeader):
-                return str(soup.findAll(attrs={"type":"text/javascript"})[2].text).replace("\n", "").replace("window.preloadedShow = ", "").replace("\t", "")
-            return soup
-        except Exception as e:
-            Tools.writeException("updateDescription", e)
-            return False
-    
-    def getDescription(soup):
-        """
-        Parse the description
-        """
-        return soup.findAll("meta")[2]["content"]
-        
-    def getFile(filePath):
-        """
-        This is for entering a podcast entry into the database \n\n
-        The json should be split up into a header file with the same fields that normal headers have
-        as well as a Clip file with the same fields that normal clips have
-        """
-        jsonFile = open(filePath, "r")
-        return json.loads(jsonFile.read(9999999))
-    
-    def parseInit(content, element):
-        """
-        To be used after you load the header using "getFile", this allows you to parse the file\n\n
-        Header --> Homepage, Name, Description, Category, Source, SocialWeb, twitter, Facebook \n
-        ClipName --> PodcastName, Title, AudioUrl, Date, Duration
-        """
-        return content[element]
-    # Examples (test cases)
-    # Omny.parseHeader(stuff, "Name")
-    # Omny.parseHeader(stuff, "Description")
-    # Omny.parseHeader(stuff, "Category")
-    # Omny.parseHeader(stuff, "SocialWeb")
-    # Omny.parseHeader(stuff, "Facebook")
-    # Omny.parseHeader(stuff, "twitter")
-    def parseHeader(content, header):
-        """
-        Valid parse strings include...\n\n
-        Header --> Name, Description, Category, SocialWeb, twitter, Facebook, Title \n\n
-        I do not advise you to parse anything outside of the fields listed above in this function. \n
-        Use 'parseClips' if you're trying to parse individual clips/shows
-        \n\n returns the single occurence of the input string
-        """
-        return re.findall(r'\"' + header + '\":\"(.*?)\",', content)[0]
-    
-
-
-    def parseClips(content, clipName):
-        """
-        Valid parse strings include...\n\n
-        ClipName --> Title, Description, AudioUrl, PublishedUtc \n \n
-        You can't parse the header with this function. Use parseHeader if you want to do that
-        \n\n returns an array of all occurences of the input string
-        """
-        content = content.split("\"Clips\":[{")[1]
-        if(clipName == "PublishedUtc"):
-            return re.findall(r'\"' + clipName + '\":\"(.*?)T', content)
-        return re.findall(r'\"' + clipName + '\":\"(.*?)\",', content)
-
-
+            cursor.execute("SELECT * FROM transcriptions WHERE title = '" + title + "';")
+            dbconnection.commit()
+            output = cursor.fetchone()
+            cursor.close()
+            if(output is None):
+                return False
+            else:
+                return True
+        except:
+            dbconnection.rollback()
+            cursor.execute("SELECT * FROM transcriptions WHERE title = '" + title + "';")
+            dbconnection.commit()
+            output = cursor.fetchone()
+            cursor.close()
+            if(output is None):
+                return False
+            else:
+                return True

@@ -27,8 +27,8 @@ class Transcribe:
         fileContent = DatabaseInteract.checkPre(dbConnection)
         if(len(fileContent) > 0 and Tools.numRunningProcesses() < maxConcurrent):
             url = fileContent[0]
-            subprocess.Popen("printf \"URL: " + fileContent[0] + "\n\n\"", shell=True)
-            subprocess.Popen("printf \"TITLE: " + fileContent[1] + "\n\n\"", shell=True)
+            subprocess.call("printf \"URL: " + fileContent[0] + "\n\n\"", shell=True)
+            subprocess.call("printf \"TITLE: " + fileContent[1] + "\n\n\"", shell=True)
             fileName = str(fileContent[1]).replace(" ", "x").replace("/", "y").replace("\\", "z")
             service = str(fileContent[3])
             podcastName = fileContent[2]
@@ -185,7 +185,7 @@ class Tools:
         """
         try:
             if(Tools.numRunningProcesses() == 0):
-                process = subprocess.call(['rm', '-r', './' + folderName + '/*'])
+                process = subprocess.call(['rm', '-r', './' + folderName + '/*'], shell=True)
                 return True
             else:
                 return False
@@ -200,8 +200,8 @@ class Tools:
         """
         try:
             # POSSIBLE EXCEPTION. spaces between -ac 1?
-            subprocess.call(['ffmpeg', '-i', './podcasts/' + fileName + '.mp3', '-acodec pcm_s16le', '-ac 1', '-ar 8000', './podcasts/' + fileName + '.wav'])
-            subprocess.call(['rm', './podcasts/' + fileName + '.mp3'])
+            subprocess.call(['ffmpeg', '-i', './podcasts/' + fileName + '.mp3', '-acodec pcm_s16le', '-ac 1', '-ar 8000', './podcasts/' + fileName + '.wav'], shell=True)
+            subprocess.call(['rm', './podcasts/' + fileName + '.mp3'], shell=True)
             return True
         except Exception as e:
             Tools.writeException("convertToWav",e)
@@ -261,7 +261,7 @@ class Tools:
         in array format because we are running this script in the background. Doing it so will make proc.wait() 
         functional
         """
-        subprocess.call(['wget', '-c', '-O', './podcasts/' + fileName + '.mp3', url])
+        subprocess.call(['wget', '-c', '-O', './podcasts/' + fileName + '.mp3', url], shell=True)
         print("finished download")
 
 

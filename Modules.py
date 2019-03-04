@@ -305,6 +305,7 @@ class DatabaseInteract:
         """
         try:
             cursor = dbConnection.cursor()
+            title = title.replace("'", "''")
             cursor.execute("INSERT INTO transcriptions(audiourl, realtimefactor, podcastname, transcription, description, date, title, pending, datetranscribed) VALUES('" + audiourl + "', NULL, '" + podcastName + "', NULL, '" + description + "', '" + parsedDate + "', '" + title + "', FALSE, NULL);")
             dbConnection.commit()
             cursor.close()
@@ -392,6 +393,7 @@ class DatabaseInteract:
         """
         cursor = dbconnection.cursor()
         output = ""
+        title = title.replace("'", "''")
         try:
             cursor.execute("SELECT * FROM transcriptions WHERE title = '" + title + "';")
             dbconnection.commit()

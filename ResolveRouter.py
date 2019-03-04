@@ -1,5 +1,5 @@
 import psycopg2
-import sys
+import sys 
 sys.path.insert(0, "./Providers")
 import JoeRogan, NPR, Omny
 
@@ -21,7 +21,7 @@ def downloadMp3(podcastName, source, url, fileName):
     if(source == "omny.fm"):
         Omny.downloadMp3(url, fileName)
         return
-    if(podcastName == "Joe Rogan Podcast"):
+    if(podcastName == "The Joe Rogan Experience"):
         JoeRogan.downloadMp3(url, fileName)
         return
     if(source == "NPR"):
@@ -46,12 +46,12 @@ def parseXML(podcastName, source, url):
     Returns an array of the following values\n
     index 0 -- Title\n
     index 1 -- Date of podcast (mm-dd-yyyy)\n
-    index 2 -- audio url (mp3)\n
+    index 2 -- audio url (mp3)\n 
     index 3 -- description\n
     """
-    if(podcastName == "Joe Rogan Podcast"):
+    if(podcastName == "The Joe Rogan Experience"):
         return JoeRogan.getXML(url)
-    elif(source == "NPR"):
+    if(source == "NPR"):
         return NPR.getXML(url)
-    elif(source == "omny.fm"):
+    if(source == "omny.fm"):
         return Omny.getXML(url)

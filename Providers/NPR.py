@@ -42,5 +42,5 @@ def downloadMp3(url):
     if(proc.wait() != 0):
         Modules.Tools.writeException("NPR download", "proc.wait() returned an exception")
     # wait 2 mins
-    time.sleep(120)
+    time.sleep(180)
     return

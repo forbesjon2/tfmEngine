@@ -23,7 +23,7 @@ def getXML(url):
         req = requests.get(url, headers=headers)
         root = etree.fromstring(req.text)
         rssList = []
-        for element in root[0].iter('item'):
+        for element in root[0].iter("item"):
             title = element.find("title").text
             date = element.find("pubDate").text
             descPre = element.find("description").text
@@ -31,11 +31,10 @@ def getXML(url):
             date = date.split(" ")
             date = datetime.strptime(date[1] + date[2] + date[3], "%d%b%Y")
             dateString = str(date.month) + "-" + str(date.day) + "-" + str(date.year)
-            url = "http://traffic.libsyn.com/joeroganexp/p" + episodeID[0] + ".mp3"
+            url = "http://traffic.libsyn.com/joeroganexp/p" + str(episodeID[0]) + ".mp3"
             description = re.findall(r'\.(.*?)<p>', descPre)
             description = description[0].replace("<strong>", "").replace("</strong>", "").replace("&amp;", "and").replace("'","''")
             rssList.append([title, dateString, url, description])
-        return rssList
         return rssList
     except Exception as e:
         Modules.Tools.writeException("JoeRogan getXML", e)
@@ -46,6 +45,6 @@ def downloadMp3(url):
     proc = subprocess.Popen("wget -c -O ./podcasts/" + filename + ".mp3 " + url, shell=True)
     if(proc.wait() != 0):
         Modules.Tools.writeException("JoeRogan download", "proc.wait() returned an exception")
-    time.sleep(150)
+    time.sleep(180)
     return
-    
+

@@ -13,20 +13,6 @@ import JoeRogan, NPR, Omny
 # ---------------------------IMPORTANT----------------------------
 # (sql statements for manual updates go here)
 
-
-def downloadMp3(podcastName, source, url, fileName):
-    """
-    downloads the mp3 
-    """
-    if(source == "omny.fm"):
-        Omny.downloadMp3(url, fileName)
-        return
-    if(podcastName == "The Joe Rogan Experience"):
-        JoeRogan.downloadMp3(url, fileName)
-        return
-    if(source == "NPR"):
-        NPR.downloadMp3(url, fileName)
-        return
     
 def uploadContent(podcastName, source ):
     """

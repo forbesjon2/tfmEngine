@@ -32,7 +32,7 @@ class Transcribe:
             fileName = str(fileContent[1]).replace(" ", "x").replace("/", "y").replace("\\", "z")
             service = str(fileContent[3])
             podcastName = fileContent[2]
-            song = ResolveRouter.downloadMp3(podcastName, service, url, fileName)   # download the mp3
+            Tools.downloadMp3(url, fileName)                            # download the mp3
             Tools.convertToWav(fileName)                                # convert it to wav and delete the file
             Tools.runTranscription(fileName)
 
@@ -175,6 +175,7 @@ class Tools:
         dateStr = re.findall(r'\d?\dx\d\d?x\d\d', preParse)
         dateStr = dateStr[0].replace("x", "-")
         return dateStr
+
     def cleanupFolder(folderName):
         """
         deletes all contents of the specified folder (but not the folder itself).\n
@@ -183,7 +184,7 @@ class Tools:
         """
         try:
             if(Tools.numRunningProcesses() == 0):
-                process = subprocess.Popen("rm -r ./" + folderName + "/*")
+                process = subprocess.Popen(['rm', '-r', './' + folderName + '/*'])
                 if process.wait() != 0:
                     Tools.writeException("cleanupFolder", "ERROR happened when using the process.wait() statement")
                 return True
@@ -199,10 +200,11 @@ class Tools:
         the argument requires the filename is without the .mp3 part. This properly converts the .mp3 to .wav with the proper format for aspire models
         """
         try:
-            processOne = subprocess.Popen("ffmpeg -i ./podcasts/" + fileName + ".mp3 -acodec pcm_s16le -ac 1 -ar 8000 ./podcasts/" + fileName + ".wav")
+            # POSSIBLE EXCEPTION. spaces between -ac 1?
+            processOne = subprocess.Popen(['ffmpeg', '-i', './podcasts/' + fileName + '.mp3', '-acodec', 'pcm_s16le', '-ac', '1' '-ar', '8000', './podcasts/' + fileName + '.wav'])
             if processOne.wait() != 0:
                 Tools.writeException("convertToWav", "ERROR happened when using the process.wait() statement (process one)")
-            processTwo = subprocess.Popen("rm ./podcasts/" + fileName + ".mp3")
+            processTwo = subprocess.Popen(['rm' './podcasts/' + fileName + '.mp3'])
             if processTwo.wait() != 0:
                 Tools.writeException("convertToWav", "ERROR happened when using the process.wait() statement (process two)")
             return True
@@ -216,6 +218,7 @@ class Tools:
         runs the transcription given the .wav file name. The wav must have the correct .wav format and is in 8000khz (?)
         """
         try:
+            # POSSIBLE EXCEPTION?
             subprocess.Popen("nohup ./online2-wav-nnet3-latgen-faster --online=false --do-endpointing=false --frame-subsampling-factor=3 --config=online.conf --max-active=7000 --beam=15.0 --lattice-beam=6.0 --acoustic-scale=1.0 --word-symbol-table=words.txt final.mdl HCLG.fst 'ark:echo utterance-id1 utterance-id1|' 'scp:echo utterance-id1 ./podcasts/" + fileName + ".wav|' 'ark:/dev/null'" + fileName + ".txt &", shell=True)
             return True
         except Exception as e:
@@ -254,6 +257,18 @@ class Tools:
             return fileName
         else:
             return False
+    def downloadMp3(url, fileName):
+        """
+        downloads the mp3 from the url (doesn't include .mp3) 
+        to a file in the podcasts folder with the .mp3 tag (does not initially include .mp3).\n\n 
+        
+        this then calls convertToWav to convert the file into the correct format. The Popen args has to be
+        in array format because we are running this script in the background. Doing it so will make proc.wait() 
+        functional
+        """
+        proc = subprocess.Popen(['wget', '-c', '-O', './podcasts/' + fileName + '.mp3', url)
+        if(proc.wait() != 0):
+            Modules.Tools.writeException("downloadMp3", "proc.wait() returned an exception")
 
 
 

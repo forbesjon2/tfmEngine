@@ -39,17 +39,3 @@ def getXML(url):
         return rssArray
     except Exception as e:
         Modules.Tools.writeException("omny getXML", e)
-
-
-
-
-def downloadMp3(url, fileName):
-    """
-    downloads the mp3 from the url (doesn't include .mp3) 
-    to a file in the podcasts folder with the .mp3 tag (does not initially include .mp3).\n\n 
-    
-    this then calls convertToWav to convert the file into the correct format
-    """
-    proc = subprocess.Popen("wget -c -O ./podcasts/" + fileName + ".mp3 " + url)
-    if(proc.wait() != 0):
-        Modules.Tools.writeException("Omny download", "proc.wait() returned an exception")

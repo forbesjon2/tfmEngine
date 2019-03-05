@@ -27,13 +27,13 @@ class Transcribe:
         fileContent = DatabaseInteract.checkPre(dbConnection)
         if(len(fileContent) > 0 and Tools.numRunningProcesses() < maxConcurrent):
             url = fileContent[0]
-            fileName = str(fileContent[1]).replace(" ", "x").replace("/", "y").replace("\\", "z")
+            indexID = fileContent[1]                                    #get the ID instead of the filename
             service = str(fileContent[3])
             podcastName = fileContent[2]
-            Tools.downloadMp3(service, url, fileName)                            # download the mp3 will print when done
-            resbool = Tools.convertToWav(fileName)                                # convert it to wav and delete the file
+            Tools.downloadMp3(service, url, indexID)                            # download the mp3 will print when done
+            resbool = Tools.convertToWav(indexID)                                # convert it to wav and delete the file
             print("convert to wav resp " + str(resbool))
-            Tools.runTranscription(fileName)
+            Tools.runTranscription(indexID)
 
 
 
@@ -53,6 +53,7 @@ class Transcribe:
                 if(DatabaseInteract.checkIfExists(dbconnection, item[0]) == False):
                     DatabaseInteract.insertClip(dbconnection, item[2], name, item[3], item[1], item[0])
 
+
     def resetScript(dbConnection, maxConcurrent):
         """
         Waits for the running transcription processes to end (2 min intervals). \n
@@ -66,7 +67,11 @@ class Transcribe:
         DatabaseInteract.refreshDatabase(dbConnection)
         ParseText.nohupTranscriptionContent("transcriptions.txt")
 
-    def parseNohup(dbconnection):
+    def parseNohup(dbconnection, fileName):
+        """
+        Requires dbconnection and the filename (location) of the file being parsed
+        """
+        #TODO add support for index ID
         nhContent = Modules.ParseText.nohupTranscriptionContent("./nohup.out")
         count = 0
         cursor = dbconnection.cursor()
@@ -260,7 +265,7 @@ class Tools:
         functional
         """
         if(service == "omny.fm"):
-            url = url + ".mp3"
+            url = url.replace(".mp3") + ".mp3"
         print("getting with url = " + url )
         subprocess.call('wget -c -O ./podcasts/' + fileName + '.mp3 ' + url, shell=True)
         print("finished download")
@@ -366,12 +371,12 @@ class DatabaseInteract:
         """
         checks the database for empty transcription entries, returns a list with \n\n
         index 0 -- audiourl\n
-        index 1 -- title\n
+        index 1 -- id\n
         index 2 -- podcast name\n
         index 3 -- service of podcast
         """
         cursor = dbConnection.cursor()
-        cursor.execute("SELECT audiourl, title, podcastName, source FROM transcriptions AS T JOIN podcasts as P ON P.name = T.podcastname WHERE COALESCE(T.description, '') = '' AND pending = FALSE LIMIT 1;")
+        cursor.execute("SELECT audiourl, id, podcastName, source FROM transcriptions AS T JOIN podcasts as P ON P.name = T.podcastname WHERE COALESCE(T.transcription, '') = '' AND pending = FALSE LIMIT 1;")
         entry = cursor.fetchone()
         cursor.close()
         cursor = dbConnection.cursor()

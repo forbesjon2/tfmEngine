@@ -265,7 +265,7 @@ class Tools:
         functional
         """
         if(service == "omny.fm"):
-            url = url.replace(".mp3") + ".mp3"
+            url = url.replace(".mp3","") + ".mp3"
         print("getting with url = " + url )
         subprocess.call('wget -c -O ./podcasts/' + fileName + '.mp3 ' + url, shell=True)
         print("finished download")
@@ -376,7 +376,7 @@ class DatabaseInteract:
         index 3 -- service of podcast
         """
         cursor = dbConnection.cursor()
-        cursor.execute("SELECT audiourl, id, podcastName, source FROM transcriptions AS T JOIN podcasts as P ON P.name = T.podcastname WHERE COALESCE(T.transcription, '') = '' AND pending = FALSE LIMIT 1;")
+        cursor.execute("SELECT audiourl, title, podcastName, source FROM transcriptions AS T JOIN podcasts as P ON P.name = T.podcastname WHERE COALESCE(T.transcription, '') = '' AND pending = FALSE LIMIT 1;")
         entry = cursor.fetchone()
         cursor.close()
         cursor = dbConnection.cursor()

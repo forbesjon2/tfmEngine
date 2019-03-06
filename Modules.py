@@ -376,7 +376,7 @@ class DatabaseInteract:
         index 3 -- service of podcast
         """
         cursor = dbConnection.cursor()
-        cursor.execute("SELECT audiourl, title, podcastName, source FROM transcriptions AS T JOIN podcasts as P ON P.name = T.podcastname WHERE COALESCE(T.transcription, '') = '' AND pending = FALSE LIMIT 1;")
+        cursor.execute("SELECT audiourl, id, podcastName, source FROM transcriptions AS T JOIN podcasts as P ON P.name = T.podcastname WHERE COALESCE(T.transcription, '') = '' AND pending = FALSE LIMIT 1;")
         entry = cursor.fetchone()
         cursor.close()
         cursor = dbConnection.cursor()

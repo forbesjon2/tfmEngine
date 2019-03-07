@@ -64,7 +64,7 @@ class Transcribe:
         emptyPodcastFolder = Tools.cleanupFolder("podcasts")
         
         DatabaseInteract.refreshDatabase(dbConnection)
-        ParseText.nohupTranscriptionContent("transcriptions.txt")
+        # ParseText.nohupTranscriptionContent("transcriptions.txt")
 
     def parseNohup(dbconnection, fileName):
         """

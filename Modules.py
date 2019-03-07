@@ -64,22 +64,19 @@ class Transcribe:
         DatabaseInteract.refreshDatabase(dbConnection)
         # ParseText.nohupTranscriptionContent("transcriptions.txt")
 
-    def parseNohup(dbconnection, fileName):
+    def parseUpload(dbconnection, fileName):
         """
         Requires dbconnection and the filename (location) of the file being parsed
         """
-        #TODO add support for index ID
-        nhContent = Modules.ParseText.nohupTranscriptionContent("./nohup.out")
+        nhContent = ParseText.nohupTranscriptionContent("fileName")
         count = 0
-        cursor = dbconnection.cursor()
         while count < len(nhContent[0]):
             rtf = nhContent[0][count]
             transcription = nhContent[1][count]
-            date = Tools.parseWavToDate(str(nhContent[2][count]))
-            cursor.execute("UPDATE FROM transcriptions SET transcription = '" + transcription + "', realtimefactor = '" + rtf + "' WHERE DATE = '" + date +"';")
-            dbconnection.commit()
+            dbID = nhContent[2][count]
+            duration = nhContent[3][count]
+            DatabaseInteract.insertTranscription(dbconnection, rtf, transcription, duration, dbID)
             count += 1
-        cursor.close()
 
 
 
@@ -184,11 +181,6 @@ class Tools:
     """
     Random functions 
     """
-    def parseWavToDate(wavString):
-        preParse = wavString.replace("./podcasts/", "").replace(".wav","")
-        dateStr = re.findall(r'\d?\dx\d\d?x\d\d', preParse)
-        dateStr = dateStr[0].replace("x", "-")
-        return dateStr
 
     def cleanupFolder(folderName):
         """
@@ -205,33 +197,6 @@ class Tools:
         except Exception as e:
             Tools.writeException("cleanupFolder", e)
         return False
-
-    
-    def convertToWav(fileName):
-        """
-        the argument requires the filename is without the .mp3 part. This properly converts the .mp3 to .wav with the proper format for aspire models
-        """
-        try:
-            # POSSIBLE EXCEPTION. spaces between -ac 1?
-            subprocess.call("ffmpeg -i ./podcasts/" + fileName + ".mp3 -acodec pcm_s16le -ac 1 -ar 8000 ./podcasts/" + fileName + ".wav", shell=True)
-            subprocess.call("rm ./podcasts/" + fileName + ".mp3", shell=True)
-            return True
-        except Exception as e:
-            Tools.writeException("convertToWav",e)
-            return False
-
-
-    def runTranscription(fileName):
-        """
-        runs the transcription given the .wav file name (has to be the database ID!). The wav must have the correct .wav format and is in 8000khz (?)
-        """
-        try:
-            subprocess.Popen("nohup ./online2-wav-nnet3-latgen-faster --online=false --do-endpointing=false --frame-subsampling-factor=3 --config=online.conf --max-mem=2000000000 --max-active=7000 --beam=15.0 --lattice-beam=6.0 --acoustic-scale=1.0 --word-symbol-table=words.txt final.mdl HCLG.fst 'ark:echo utterance-id" + fileName + " utterance-id"  + fileName + "|' 'scp:echo utterance-id" + fileName + " ./podcasts/" + fileName + ".wav|' 'ark:/dev/null' &", shell=True)
-            return True
-        except Exception as e:
-            Tools.writeException("runTranscription",e)
-            return False
-
 
 
     def numRunningProcesses():
@@ -340,45 +305,9 @@ class DatabaseInteract:
         return False
     
 
-    def insertTranscription(dbConnection, url, realtimefactor, transcription, duration):
+    def insertTranscription(dbConnection, realtimefactor, transcription, duration, dbID):
         """
-        This is to be used after the parseTranscriptionContent function if it was successful.
-        \n\nIt basically uploads the arguents to the database, returning false and throwing an 
-        error if unsuccesful (or true otherwise)\n
-        """
-        try:
-            cursor = dbConnection.cursor()
-            cursor.execute("UPDATE transcriptions SET realtimefactor = '" + realtimefactor + "', transcription = '" + transcription + "', datetranscribed = now() WHERE audiourl = '" + url + "';")
-            dbConnection.commit()
-            cursor.close()
-            return True
-        except Exception as e:
-            Tools.writeException("uploadTranscriptionData", e)
-        return False
-
-
-
-    def insertTranscriptionWithTimeGay(dbConnection, name, realtimefactor, transcription, duration):
-        """
-        This is to be used after the parseTranscriptionContent function if it was successful.
-        \n\nIt basically uploads the arguents to the database, returning false and throwing an 
-        error if unsuccesful (or true otherwise)\n
-        """
-        try:
-            cursor = dbConnection.cursor()
-            cursor.execute("UPDATE transcriptions SET realtimefactor = '" + realtimefactor + "', transcription = '" + transcription + "', datetranscribed = now(), duration = '" + duration + "' WHERE  title LIKE '%" + name + "%';")
-            dbConnection.commit()
-            cursor.close()
-            return True
-        except Exception as e:
-            Tools.writeException("uploadTranscriptionData", e)
-        return False
-    
-
-    def insertTranscriptionWithTime(dbConnection, dbID, realtimefactor, transcription, duration):
-        """
-        This is to be used after the parseTranscriptionContent function if it was successful.
-        \n\nIt basically uploads the arguents to the database, returning false and throwing an 
+        This basically uploads the arguents to the database, returning false and throwing an 
         error if unsuccesful (or true otherwise)\n
         """
         try:
@@ -390,7 +319,6 @@ class DatabaseInteract:
         except Exception as e:
             Tools.writeException("uploadTranscriptionData", e)
         return False
-    
 
 
 

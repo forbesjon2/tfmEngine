@@ -27,12 +27,11 @@ class Transcribe:
         fileContent = DatabaseInteract.checkPre(dbConnection)
         if(len(fileContent) > 0 and Tools.numRunningProcesses() < maxConcurrent):
             url = fileContent[0]
-            indexID = fileContent[1]                                    #get the ID instead of the filename
+            indexID = fileContent[1]                                           # get the ID instead of the filename
             service = str(fileContent[3])
             podcastName = fileContent[2]
             Tools.downloadMp3(service, url, indexID)                            # download the mp3 will print when done
             resbool = Tools.convertToWav(indexID)                                # convert it to wav and delete the file
-            print("convert to wav resp " + str(resbool))
             Tools.runTranscription(indexID)
 
 
@@ -100,7 +99,10 @@ class ParseText:
         each line has to be under 300000 characters(?). This then returns the following...\n\n
         index 0 -- a list of all the occurences of realTimeFactor
         index 1 -- a list of all the occurences of transcriptions
-        index 2 -- a list of all the occurences of the transcription name.
+        index 2 -- a list of all the occurences of the total transcription time.
+        ----Example usage----
+        for i in range(len(parsedContent[0])):
+            print(parsedContent[0][i])
         """
         try:
             continu = True
@@ -121,8 +123,8 @@ class ParseText:
                 if(len(item) > 1000):
                     transcriptionList.append(item)
             results.append(transcriptionList)
-            transcriptionName = re.findall(r'Output #0, wav, to (.*?):', fileContent)
-            results.append(transcriptionName)
+            transcriptionTime = re.findall(r'seconds  / (.*?) seconds\.', fileContent)
+            results.append(transcriptionTime)
             return results
         except Exception as e:
                 Tools.writeException("nohupTranscriptionContent", e)
@@ -213,17 +215,17 @@ class Tools:
 
     def runTranscription(fileName):
         """
-        runs the transcription given the .wav file name. The wav must have the correct .wav format and is in 8000khz (?)
+        runs the transcription given the .wav file name (has to be the database ID!). The wav must have the correct .wav format and is in 8000khz (?)
         """
         try:
-            # POSSIBLE EXCEPTION?
-            subprocess.Popen("nohup ./online2-wav-nnet3-latgen-faster --online=false --do-endpointing=false --frame-subsampling-factor=3 --config=online.conf --max-active=7000 --beam=15.0 --lattice-beam=6.0 --acoustic-scale=1.0 --word-symbol-table=words.txt final.mdl HCLG.fst 'ark:echo utterance-id1 utterance-id1|' 'scp:echo utterance-id1 ./podcasts/" + fileName + ".wav|' 'ark:/dev/null'" + fileName + ".txt &", shell=True)
+            subprocess.Popen("nohup ./online2-wav-nnet3-latgen-faster --online=false --do-endpointing=false --frame-subsampling-factor=3 --config=online.conf --max-active=7000 --beam=15.0 --lattice-beam=6.0 --acoustic-scale=1.0 --word-symbol-table=words.txt final.mdl HCLG.fst 'ark:echo utterance-id1 utterance-id"  + fileName + "|' 'scp:echo utterance-id" + fileName + " ./podcasts/" + fileName + ".wav|' 'ark:/dev/null' &", shell=True)
             return True
         except Exception as e:
             Tools.writeException("runTranscription",e)
             return False
 
-            
+
+
     def numRunningProcesses():
         """
         gets the number of runnning transcription processes
@@ -266,7 +268,6 @@ class Tools:
         """
         if(service == "omny.fm"):
             url = url.replace(".mp3","") + ".mp3"
-        print("getting with url = " + url )
         subprocess.call('wget -c -O ./podcasts/' + fileName + '.mp3 ' + url, shell=True)
         print("finished download")
 
@@ -347,16 +348,33 @@ class DatabaseInteract:
         return False
 
 
-    def insertTranscriptionWithTime(dbConnection, url, realtimefactor, transcription, transcriptionTime):
+
+    def insertTranscriptionWithTimeGay(dbConnection, name, realtimefactor, transcription, duration):
         """
         This is to be used after the parseTranscriptionContent function if it was successful.
         \n\nIt basically uploads the arguents to the database, returning false and throwing an 
         error if unsuccesful (or true otherwise)\n
-            N
         """
         try:
             cursor = dbConnection.cursor()
-            cursor.execute("UPDATE transcriptions SET realtimefactor = '" + realtimefactor + "', transcription = '" + transcription + "', datetranscribed = now() WHERE audiourl = '" + url + "';")
+            cursor.execute("UPDATE transcriptions SET realtimefactor = '" + realtimefactor + "', transcription = '" + transcription + "', datetranscribed = now(), duration = '" + duration + "' WHERE  title LIKE '%" + name + "%';")
+            dbConnection.commit()
+            cursor.close()
+            return True
+        except Exception as e:
+            Tools.writeException("uploadTranscriptionData", e)
+        return False
+    
+
+    def insertTranscriptionWithTime(dbConnection, dbID, realtimefactor, transcription, duration):
+        """
+        This is to be used after the parseTranscriptionContent function if it was successful.
+        \n\nIt basically uploads the arguents to the database, returning false and throwing an 
+        error if unsuccesful (or true otherwise)\n
+        """
+        try:
+            cursor = dbConnection.cursor()
+            cursor.execute("UPDATE transcriptions SET realtimefactor = '" + realtimefactor + "', transcription = '" + transcription + "', datetranscribed = now(), duration = '" + duration + "' WHERE id = '" + dbID + "';")
             dbConnection.commit()
             cursor.close()
             return True

@@ -29,10 +29,8 @@ class Transcribe:
             url = fileContent[0]
             indexID = str(fileContent[1])                                      # get the ID instead of the filename
             service = str(fileContent[3])
-            podcastName = fileContent[2]
-            Tools.downloadMp3(service, url, indexID)                            # download the mp3 will print when done
-            resbool = Tools.convertToWav(indexID)                               # convert it to wav and delete the file
-            Tools.runTranscription(indexID)
+            # podcastName = fileContent[2]
+            Tools.transcribeAll(service, url, indexID)                            # download the mp3 will print when done
 
 
 
@@ -257,19 +255,20 @@ class Tools:
             return fileName
         else:
             return False
-    def downloadMp3(service, url, fileName):
+    def transcribeAll(service, url, fileName):
         """
-        downloads the mp3 from the url (doesn't include .mp3) 
-        to a file in the podcasts folder with the .mp3 tag (does not initially include .mp3).\n\n 
-        
-        this then calls convertToWav to convert the file into the correct format. The Popen args has to be
-        in array format because we are running this script in the background. Doing it so will make proc.wait() 
-        functional
+        Does everything you need to transcribe a podcast given the filename\n
+        Download podcast, wait 40 seconds, change podcast to .wav, wait 10 seconds, 
+        remove the .mp3 file, run the transcription
         """
         if(service == "omny.fm"):
             url = url.replace(".mp3","") + ".mp3"
-        subprocess.call('wget -c -O ./podcasts/' + fileName + '.mp3 ' + url, shell=True)
-        print("finished download")
+        subprocess.Popen("wget -c -O ./podcasts/" + fileName + ".mp3 " + url + " && sleep 40 && ffmpeg -i ./podcasts/"
+            + fileName + ".mp3 -acodec pcm_s16le -ac 1 -ar 8000 ./podcasts/" + fileName + ".wav && sleep 10 && rm ./podcasts/" 
+            + fileName + ".mp3 && nohup ./online2-wav-nnet3-latgen-faster --online=false --do-endpointing=false "
+            + "--frame-subsampling-factor=3 --config=online.conf --max-active=7000 --beam=15.0 --lattice-beam=6.0 "
+            + "--acoustic-scale=1.0 --word-symbol-table=words.txt final.mdl HCLG.fst 'ark:echo utterance-id" + fileName 
+            + " utterance-id"  + fileName + "|' 'scp:echo utterance-id" + fileName + " ./podcasts/" + fileName + ".wav|' 'ark:/dev/null' &", shell=True)
 
 
 

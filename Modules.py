@@ -218,7 +218,7 @@ class Tools:
         runs the transcription given the .wav file name (has to be the database ID!). The wav must have the correct .wav format and is in 8000khz (?)
         """
         try:
-            subprocess.Popen("nohup ./online2-wav-nnet3-latgen-faster --online=false --do-endpointing=false --frame-subsampling-factor=3 --config=online.conf --max-active=7000 --beam=15.0 --lattice-beam=6.0 --acoustic-scale=1.0 --word-symbol-table=words.txt final.mdl HCLG.fst 'ark:echo utterance-id1 utterance-id"  + fileName + "|' 'scp:echo utterance-id" + fileName + " ./podcasts/" + fileName + ".wav|' 'ark:/dev/null' &", shell=True)
+            subprocess.Popen("nohup ./online2-wav-nnet3-latgen-faster --online=false --do-endpointing=false --frame-subsampling-factor=3 --config=online.conf --max-active=7000 --beam=15.0 --lattice-beam=6.0 --acoustic-scale=1.0 --word-symbol-table=words.txt final.mdl HCLG.fst 'ark:echo utterance-id" + fileName + " utterance-id"  + fileName + "|' 'scp:echo utterance-id" + fileName + " ./podcasts/" + fileName + ".wav|' 'ark:/dev/null' &", shell=True)
             return True
         except Exception as e:
             Tools.writeException("runTranscription",e)

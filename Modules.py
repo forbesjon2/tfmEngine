@@ -68,7 +68,7 @@ class Transcribe:
         """
         Requires dbconnection and the filename (location) of the file being parsed
         """
-        nhContent = ParseText.nohupTranscriptionContent("fileName")
+        nhContent = ParseText.nohupTranscriptionContent(fileName)
         count = 0
         while count < len(nhContent[0]):
             rtf = nhContent[0][count]

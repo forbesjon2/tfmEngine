@@ -26,6 +26,10 @@ class Transcribe:
         # checks if any shows are pending.
         fileContent = DatabaseInteract.checkPre(dbConnection)
         if(len(fileContent) > 0 and Tools.numRunningProcesses() < maxConcurrent):
+            cursor = dbConnection.cursor()
+            cursor.execute("UPDATE transcriptions SET pending = TRUE WHERE audiourl = '" + fileContent[0] + "';")
+            dbConnection.commit()
+            cursor.close()
             url = fileContent[0]
             indexID = str(fileContent[1])                                      # get the ID instead of the filename
             service = str(fileContent[3])
@@ -60,9 +64,7 @@ class Transcribe:
         while (Tools.numRunningProcesses() != 0):                       # wait for the transcriptions to end. Pings every 2 mins
             time.sleep(120)
         emptyPodcastFolder = Tools.cleanupFolder("podcasts")
-        
         DatabaseInteract.refreshDatabase(dbConnection)
-        # ParseText.nohupTranscriptionContent("transcriptions.txt")
 
     def parseUpload(dbconnection, fileName):
         """
@@ -332,10 +334,6 @@ class DatabaseInteract:
         cursor = dbConnection.cursor()
         cursor.execute("SELECT audiourl, T.id, podcastName, source FROM transcriptions AS T JOIN podcasts as P ON P.name = T.podcastname WHERE COALESCE(T.transcription, '') = '' AND pending = FALSE LIMIT 1;")
         entry = cursor.fetchone()
-        cursor.close()
-        cursor = dbConnection.cursor()
-        cursor.execute("UPDATE transcriptions SET pending = TRUE WHERE audiourl = '" + entry[0] + "';")
-        dbConnection.commit()
         cursor.close()
         return entry
 

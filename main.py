@@ -1,18 +1,21 @@
 import Modules
 import psycopg2
 import subprocess
+
+
+
 conn = psycopg2.connect(host="localhost",database="ditto", user="localrole", password="Noderink1")
-minsPassed = 0
+# minsPassed = 0
+Modules.Transcribe.resetScript(dbConnection, 18)
 while(True):
     Modules.Transcribe.runAutoCheck(conn, 18)
-    subprocess.call("sleep 60s", shell=True)
-
-# conn.close()
+    subprocess.call("sleep 20s", shell=True)
+conn.close()
 
 
 #Modules.Transcribe.parseNohup(conn)
 
-conn.close()
+# conn.close()
 # filename = "tt"
 # import subprocess
 # url = "http://traffic.libsyn.com/joeroganexp/p1255.mp3"

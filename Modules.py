@@ -27,11 +27,11 @@ class Transcribe:
         fileContent = DatabaseInteract.checkPre(dbConnection)
         if(len(fileContent) > 0 and Tools.numRunningProcesses() < maxConcurrent):
             url = fileContent[0]
-            indexID = fileContent[1]                                           # get the ID instead of the filename
+            indexID = str(fileContent[1])                                      # get the ID instead of the filename
             service = str(fileContent[3])
             podcastName = fileContent[2]
             Tools.downloadMp3(service, url, indexID)                            # download the mp3 will print when done
-            resbool = Tools.convertToWav(indexID)                                # convert it to wav and delete the file
+            resbool = Tools.convertToWav(indexID)                               # convert it to wav and delete the file
             Tools.runTranscription(indexID)
 
 
@@ -326,8 +326,8 @@ class DatabaseInteract:
             dbConnection.commit()
             cursor.close()
             return True
-        except Exception as e:
-		        Tools.writeException("insertClips", e)
+        except:
+            return False
         return False
     
 

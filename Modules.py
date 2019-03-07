@@ -240,7 +240,7 @@ class Tools:
         subprocess.Popen("wget -c -O ./podcasts/" + fileName + ".mp3 " + url + " && sleep 40 && ffmpeg -i ./podcasts/"
             + fileName + ".mp3 -acodec pcm_s16le -ac 1 -ar 8000 ./podcasts/" + fileName + ".wav && sleep 10 && rm ./podcasts/" 
             + fileName + ".mp3 && nohup ./online2-wav-nnet3-latgen-faster --online=false --do-endpointing=false "
-            + "--frame-subsampling-factor=3 --config=online.conf --max-active=7000 --beam=15.0 --lattice-beam=6.0 "
+            + "--frame-subsampling-factor=3 --config=online.conf --max-mem=2000000000 --max-active=7000 --beam=15.0 --lattice-beam=6.0 "
             + "--acoustic-scale=1.0 --word-symbol-table=words.txt final.mdl HCLG.fst 'ark:echo utterance-id" + fileName 
             + " utterance-id"  + fileName + "|' 'scp:echo utterance-id" + fileName + " ./podcasts/" + fileName + ".wav|' 'ark:/dev/null' &", shell=True)
 

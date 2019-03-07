@@ -95,19 +95,25 @@ class ParseText:
         """
         This parses the content of nohup. The size of nohup is basically unlimited but 
         each line has to be under 300000 characters(?). This then returns the following...\n\n
-        index 0 -- a list of all the occurences of realTimeFactor
-        index 1 -- a list of all the occurences of transcriptions
-        index 2 -- a list of all the occurences of the total transcription time.
-        ----Example usage----
+        index 0 -- a list of all the occurences of realTimeFactor\n
+        index 1 -- a list of all the occurences of transcriptions\n
+        index 2 -- a list of all the occurences of the transcription ID\n
+        index 3 -- a list of all the occurences of the total transcription time.\n\n
+        \n\n
+        \-\---Example usage----\n
+        parsedContent = nohupTranscriptionContent("ok.txt")
         for i in range(len(parsedContent[0])):
-            print(parsedContent[0][i])
+            print(parsedContent[0][i])          # realtimefactor
+            print(parsedContent[1][i])          # transcription
+            print(parsedContent[2][i])          # transcription ID
+            print(parsedContent[3][i])          # transcription time
         """
         try:
             continu = True
             fileContent = ""
             f = open(filePath, 'r')
             while (continu):
-                temp = f.readline(300000)
+                temp = f.readline(900000)
                 if(len(temp) == 0):
                     continu = False
                 else:
@@ -115,16 +121,20 @@ class ParseText:
             results = []
             realTimeFactor = re.findall(r'Timing stats: real-time factor for offline decoding was (.*?) = ', fileContent)
             results.append(realTimeFactor)
-            transcription = re.findall(r'utterance-id1 (.*?)\n', fileContent)
+            transcription = re.findall(r'utterance-id(.*?) (.*?)\n', fileContent)
             transcriptionList = []
+            transcriptionIDList = []
             for item in transcription:
-                if(len(item) > 1000):
-                    transcriptionList.append(item)
+                if(len(item[1]) > 1000):
+                    transcriptionIDList.append(item[0])
+                    transcriptionList.append(item[1])
             results.append(transcriptionList)
+            results.append(transcriptionIDList)
             transcriptionTime = re.findall(r'seconds  / (.*?) seconds\.', fileContent)
             results.append(transcriptionTime)
             return results
         except Exception as e:
+            print(e)
                 Tools.writeException("nohupTranscriptionContent", e)
         return False
 
@@ -216,7 +226,7 @@ class Tools:
         runs the transcription given the .wav file name (has to be the database ID!). The wav must have the correct .wav format and is in 8000khz (?)
         """
         try:
-            subprocess.Popen("nohup ./online2-wav-nnet3-latgen-faster --online=false --do-endpointing=false --frame-subsampling-factor=3 --config=online.conf --max-active=7000 --beam=15.0 --lattice-beam=6.0 --acoustic-scale=1.0 --word-symbol-table=words.txt final.mdl HCLG.fst 'ark:echo utterance-id" + fileName + " utterance-id"  + fileName + "|' 'scp:echo utterance-id" + fileName + " ./podcasts/" + fileName + ".wav|' 'ark:/dev/null' &", shell=True)
+            subprocess.Popen("nohup ./online2-wav-nnet3-latgen-faster --online=false --do-endpointing=false --frame-subsampling-factor=3 --config=online.conf --max-mem=2000000000 --max-active=7000 --beam=15.0 --lattice-beam=6.0 --acoustic-scale=1.0 --word-symbol-table=words.txt final.mdl HCLG.fst 'ark:echo utterance-id" + fileName + " utterance-id"  + fileName + "|' 'scp:echo utterance-id" + fileName + " ./podcasts/" + fileName + ".wav|' 'ark:/dev/null' &", shell=True)
             return True
         except Exception as e:
             Tools.writeException("runTranscription",e)

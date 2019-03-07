@@ -131,8 +131,7 @@ class ParseText:
             results.append(transcriptionTime)
             return results
         except Exception as e:
-            print(e)
-                Tools.writeException("nohupTranscriptionContent", e)
+            Tools.writeException("nohupTranscriptionContent", e)
         return False
 
 

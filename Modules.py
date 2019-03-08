@@ -73,12 +73,15 @@ class Transcribe:
         nhContent = ParseText.nohupTranscriptionContent(fileName)
         count = 0
         while count < len(nhContent[0]):
-            rtf = nhContent[0][count]
-            transcription = nhContent[1][count].replace("'", "''").replace("_", "")
-            dbID = nhContent[2][count]
-            duration = nhContent[3][count]
-            DatabaseInteract.insertTranscription(dbconnection, rtf, transcription, duration, dbID)
-            count += 1
+            try:
+                rtf = nhContent[0][count]
+                transcription = nhContent[1][count].replace("'", "''").replace("_", "")
+                dbID = nhContent[2][count]
+                duration = nhContent[3][count]
+                DatabaseInteract.insertTranscription(dbconnection, rtf, transcription, duration, dbID)
+                count += 1
+            except:
+                print("couldnt upload one at index " + count)
 
 
 

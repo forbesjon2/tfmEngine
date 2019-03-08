@@ -27,7 +27,7 @@ class Transcribe:
         fileContent = DatabaseInteract.checkPre(dbConnection)
         if(len(fileContent) > 0 and Tools.numRunningProcesses() < maxConcurrent):
             cursor = dbConnection.cursor()
-            cursor.execute("UPDATE transcriptions SET pending = TRUE WHERE audiourl = '" + fileContent[0] + "';")
+            cursor.execute("UPDATE transcriptions SET pending = TRUE WHERE id = '" + fileContent[1] + "';")
             dbConnection.commit()
             cursor.close()
             url = fileContent[0]

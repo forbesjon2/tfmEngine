@@ -6,9 +6,9 @@ import subprocess
 
 conn = psycopg2.connect(host="localhost",database="ditto", user="localrole", password="Noderink1")
 # minsPassed = 0
-Modules.Transcribe.resetScript(dbConnection, 18)
+Modules.Transcribe.resetScript(conn, 20)
 while(True):
-    Modules.Transcribe.runAutoCheck(conn, 18)
+    Modules.Transcribe.runAutoCheck(conn, 20)
     subprocess.call("sleep 20s", shell=True)
 conn.close()
 

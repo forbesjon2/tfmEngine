@@ -13,16 +13,6 @@ import JoeRogan, NPR, Omny
 # ---------------------------IMPORTANT----------------------------
 # (sql statements for manual updates go here)
 
-    
-def uploadContent(podcastName, source ):
-    """
-    routes get content
-    """
-    if(podcastName == "Mark Levin Audio Rewind"):
-        return Omny.getContent(url, withHeader)
-    # joe rogan podcast
-    if(podcastName == ""):
-        pass
 
 def parseXML(podcastName, source, url):
     """

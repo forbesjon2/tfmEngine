@@ -250,7 +250,6 @@ class Tools:
 
 
 
-
 class DatabaseInteract:
     """
     This is where the database is updated. Refer to the example clips/header for format information.\n\n

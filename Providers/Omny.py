@@ -27,15 +27,19 @@ def getXML(url):
         req = requests.get(url, headers=headers)
         root = etree.fromstring(req.text)
         rssArray = []
+        
         for element in root.iter('item'):
-            title = element.find("title").text.replace("''", "'")
-            description = element.find("{http://www.itunes.com/dtds/podcast-1.0.dtd}summary").text.replace("'", "''")
-            date = element.find("pubDate").text
-            date = date.split(" ")
-            date = datetime.strptime(date[1] + date[2] + date[3], "%d%b%Y")
-            dateString = str(date.month) + "-" + str(date.day) + "-" + str(date.year)
-            actualUrl = element.find("link").text + ".mp3"
-            rssArray.append([title, dateString, actualUrl, description])
+            try:
+                title = element.find("title").text.replace("'", "''")
+                description = element.find("{http://www.itunes.com/dtds/podcast-1.0.dtd}summary").text.replace("'", "''")
+                date = element.find("pubDate").text
+                date = date.split(" ")
+                date = datetime.strptime(date[1] + date[2] + date[3], "%d%b%Y")
+                dateString = str(date.month) + "-" + str(date.day) + "-" + str(date.year)
+                actualUrl = element.find("link").text + ".mp3"
+                rssArray.append([title, dateString, actualUrl, description])
+            except:
+                continue
         return rssArray
     except Exception as e:
         Modules.Tools.writeException("omny getXML", e)

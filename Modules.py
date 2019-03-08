@@ -27,7 +27,7 @@ class Transcribe:
         fileContent = DatabaseInteract.checkPre(dbConnection)
         if(len(fileContent) > 0 and Tools.numRunningProcesses() < maxConcurrent):
             cursor = dbConnection.cursor()
-            cursor.execute("UPDATE transcriptions SET pending = TRUE WHERE id = '" + fileContent[1] + "';")
+            cursor.execute("UPDATE transcriptions SET pending = TRUE WHERE id = '" + str(fileContent[1]) + "';")
             dbConnection.commit()
             cursor.close()
             url = fileContent[0]
@@ -315,7 +315,7 @@ class DatabaseInteract:
         """
         try:
             cursor = dbConnection.cursor()
-            cursor.execute("UPDATE transcriptions SET realtimefactor = '" + realtimefactor + "', transcription = '" + transcription + "', datetranscribed = now(), duration = '" + duration + "' WHERE id = '" + dbID + "';")
+            cursor.execute("UPDATE transcriptions SET realtimefactor = '" + realtimefactor + "', transcription = '" + transcription + "', datetranscribed = now(), duration = '" + duration + "' WHERE id = '" + str(dbID) + "';")
             dbConnection.commit()
             cursor.close()
             return True

@@ -9,7 +9,7 @@ conn = psycopg2.connect(host="localhost",database="ditto", user="localrole", pas
 Modules.Transcribe.resetScript(conn, 20)
 while(True):
     Modules.Transcribe.runAutoCheck(conn, 20)
-    subprocess.call("sleep 20s", shell=True)
+    subprocess.call("sleep 15s", shell=True)
 conn.close()
 
 

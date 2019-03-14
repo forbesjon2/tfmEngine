@@ -1,33 +1,25 @@
 import psycopg2
 import sys 
-sys.path.insert(0, "./Providers")
-import JoeRogan, NPR, Omny
+import Modules
+import subprocess
+import Modules
+import requests
+import xml.etree.cElementTree as etree
+import re
 
 
 # The functions in this class are functions that require specific set of operations for a
 # certain action and all require 'podcastname' as the first argument. This must be updated 
-# every time podcast is added. (the number of podcast entries in the database must equal
-# the number of cases in the respective switch case in this class)
+# every time podcast is added that screws something up. Usually its the URL giving us the issue
+# so thats the only thing that needs to be routed at the moment
 
 
-# ---------------------------IMPORTANT----------------------------
-# (sql statements for manual updates go here)
-
-
-def parseXML(podcastName, source, url):
-    """
-    parses the XML from the podcasts RSS feed and is to be used as the main
-    means of retrieving new content
-    Unfortunately, not every podcast has the same format for XML so all thats needed is the rss feed url\n
-    Returns an array of the following values\n
-    index 0 -- Title\n
-    index 1 -- Date of podcast (mm-dd-yyyy)\n
-    index 2 -- audio url (mp3)\n 
-    index 3 -- description\n
-    """
+def urlRouter(podcastName, source, element):
     if(podcastName == "The Joe Rogan Experience"):
-        return JoeRogan.getXML(url)
-    if(source == "NPR"):
-        return NPR.getXML(url)
+        episodeID = re.findall(r'#(.*?)\.', element.find("description").text)
+        return "http://traffic.libsyn.com/joeroganexp/p" + str(episodeID[0]) + ".mp3"
+
     if(source == "omny.fm"):
-        return Omny.getXML(url)
+        return element.find("link").text + ".mp3"
+        
+    return element.find("enclosure").get("url")

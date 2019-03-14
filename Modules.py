@@ -27,7 +27,7 @@ class Transcribe:
         fileContent = DatabaseInteract.checkPre(dbConnection)
         if(len(fileContent) > 0 and Tools.numRunningProcesses() < maxConcurrent):
             cursor = dbConnection.cursor()
-            cursor.execute("UPDATE transcriptions SET pending = TRUE WHERE id = '" + str(fileContent[1]) + "';")
+            cursor.execute("UPDATE transcriptions SET pending = TRUE WHERE id = '" + fileContent[1] + "';")
             dbConnection.commit()
             cursor.close()
             url = fileContent[0]
@@ -49,7 +49,7 @@ class Transcribe:
             url = str(rss[0])
             name = str(rss[1])
             source = str(rss[2])
-            rssArray = ResolveRouter.parseXML(name, source, url)
+            rssArray = DatabaseInteract.rssCheck(name, source, url)
             for item in rssArray:
                 if(DatabaseInteract.checkIfExists(dbconnection, item[0]) == False):
                     DatabaseInteract.insertClip(dbconnection, item[2], name, item[3], item[1], item[0])
@@ -73,15 +73,15 @@ class Transcribe:
         nhContent = ParseText.nohupTranscriptionContent(fileName)
         count = 0
         while count < len(nhContent[0]):
-            count += 1;
             try:
                 rtf = nhContent[0][count]
                 transcription = nhContent[1][count].replace("'", "''").replace("_", "")
-                dbID = nhContent[2][count].replace(".", "")
+                dbID = nhContent[2][count]
                 duration = nhContent[3][count]
                 DatabaseInteract.insertTranscription(dbconnection, rtf, transcription, duration, dbID)
+                count += 1
             except:
-                print("couldnt upload one at index " + str(count))
+                print("couldnt upload one at index " + count)
 
 
 
@@ -259,7 +259,7 @@ class DatabaseInteract:
     Seeding the database would include the usage of 'insertHeader' then 'insertClips'. Pretty much every 
     function in here will require a dbConnection argument
     """
-    def podcastInit(dbConnection, homepage, name, description, category, source, imageurl, web, twitter, facebook, rss):
+    def uploadPodcast(dbConnection, homepage, name, description, category, source, imageurl, web, twitter, facebook, rss):
         """
         HomePage --> the homepage of the podcast (NOT NULL)\n
         Name --> The name of the podcast (NOT NULL)\n
@@ -276,6 +276,8 @@ class DatabaseInteract:
         """
         try:
             cursor = dbConnection.cursor()
+            name = name.replace("'", "''")
+            description = description.replace("'", "''")
             cursor.execute("""INSERT INTO podcasts(homepage, name, description, category, source, imageuri, web, twitter, Facebook, rss) VALUES(%s, %s, %s, %s, %s, %s, %s, %s, %s, %s);""", (homepage, name, description, category, source, imageurl, web, twitter, facebook, rss))
             dbConnection.commit()
             cursor.close()
@@ -315,7 +317,7 @@ class DatabaseInteract:
         """
         try:
             cursor = dbConnection.cursor()
-            cursor.execute("UPDATE transcriptions SET realtimefactor = '" + realtimefactor + "', transcription = '" + transcription + "', datetranscribed = now(), duration = '" + duration + "' WHERE id = '" + str(dbID) + "';")
+            cursor.execute("UPDATE transcriptions SET realtimefactor = '" + realtimefactor + "', transcription = '" + transcription + "', datetranscribed = now(), duration = '" + duration + "' WHERE id = '" + dbID + "';")
             dbConnection.commit()
             cursor.close()
             return True
@@ -382,3 +384,59 @@ class DatabaseInteract:
                 return False
             else:
                 return True
+
+    def podcastInitRSS(conn, url):
+        """
+        Gets the following podcast details: 
+        name, homepage, description, category, source, web, twitter, facebook, rss \n
+            If all match it uploads it to the database
+        """
+        try:
+            headers = {'Accept':'text/html, application/xhtml+xml, application/xml; q=0.9, */*; q=0.8' ,'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/64.0.3282.140 Safari/537.36 Edge/18.17763'}
+            req = requests.get(url, headers=headers)
+            root = etree.fromstring(req.text)
+            resArray = []
+            homepage = root[0].find("link").text
+            name = root[0].find("title").text
+            description = ""
+            try:
+                description = root[0].find("{http://www.itunes.com/dtds/podcast-1.0.dtd}summary").text
+            except:
+                pass
+            try:
+                description = root[0].find("description").text
+            except: 
+                pass
+            category = root[0].find("{http://www.itunes.com/dtds/podcast-1.0.dtd}category").attrib["text"]
+            image = root[0].find("{http://www.itunes.com/dtds/podcast-1.0.dtd}image").attrib["href"]
+            if(len(name) > 0 and len(description) > 0 and len(category) > 0 and len(image) > 0 and len(homepage) > 0):
+                DatabaseInteract.uploadPodcast(conn, homepage, name, description, category, "", image, "", "", "", url)
+        except Exception as e:
+            Tools.writeException("podcastInitRSS", e + ".\n issue with url " + url)
+
+
+
+
+    def rssCheck(podcastName, source, url):
+        """
+
+        """
+        try:
+            headers = {'Accept':'text/html, application/xhtml+xml, application/xml; q=0.9, */*; q=0.8' ,'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/64.0.3282.140 Safari/537.36 Edge/18.17763'}
+            req = requests.get(url, headers=headers)
+            root = etree.fromstring(req.text)
+            rssArray = []
+            for element in root[0].iter('item'):
+                title = element.find("title").text.replace("''", "'")
+                description = element.find("description").text.replace("<strong>", "").replace("</strong>", "").replace("&amp;", "and").replace("'","''")
+                date = element.find("pubDate").text
+                date = date.split(" ")
+                date = datetime.strptime(date[1] + date[2] + date[3], "%d%b%Y")
+                dateString = str(date.month) + "-" + str(date.day) + "-" + str(date.year)
+                url = ResolveRouter.urlRouter(podcastName, source, element)
+                if(len(title) > 0 and len(description) > 0 and len(dateString) > 0 and len(url) > 0):
+                    rssArray.append([title, dateString, url, description])
+                else:
+                    print("error in XMLDetailsDebug parsing issue"s)
+        except Exception as e:
+            Tools.writeException("getXMLDetailsDebug", e + " with url " + url + " and podcastName " + podcastName)

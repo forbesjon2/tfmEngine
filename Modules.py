@@ -437,6 +437,7 @@ class DatabaseInteract:
                 if(len(title) > 0 and len(description) > 0 and len(dateString) > 0 and len(url) > 0):
                     rssArray.append([title, dateString, url, description])
                 else:
-                    print("error in XMLDetailsDebug parsing issue"s)
+                    print("error in XMLDetailsDebug parsing issue")
+            return rssArray
         except Exception as e:
             Tools.writeException("getXMLDetailsDebug", e + " with url " + url + " and podcastName " + podcastName)

@@ -46,6 +46,7 @@ class Transcribe:
         cursor.execute("select rss, name, source from podcasts;")
         rssArray = cursor.fetchall()
         for rss in rssArray:
+            print("chekcing name " + str(rss[1]))
             url = str(rss[0])
             name = str(rss[1])
             source = str(rss[2])
@@ -317,7 +318,7 @@ class DatabaseInteract:
         """
         try:
             cursor = dbConnection.cursor()
-            cursor.execute("UPDATE transcriptions SET realtimefactor = '" + realtimefactor + "', transcription = '" + transcription + "', datetranscribed = now(), duration = '" + duration + "' WHERE id = '" + dbID + "';")
+            cursor.execute("UPDATE transcriptions SET realtimefactor = '" + realtimefactor + "', transcription = '" + transcription + "', datetranscribed = now(), duration = '" + duration + "' WHERE id = '" + str(dbID) + "';")
             dbConnection.commit()
             cursor.close()
             return True
@@ -351,7 +352,7 @@ class DatabaseInteract:
         """
         try:
             cursor = dbConnection.cursor()
-            cursor.execute("UPDATE transcriptions SET pending = FALSE WHERE COALESCE(transcription, '') = '';")
+            cursor.execute("UPDATE transcriptions SET pending = TRUE WHERE COALESCE(transcription, '') = '';")
             dbConnection.commit()
             cursor.close()
         except Exception as e:
@@ -417,9 +418,10 @@ class DatabaseInteract:
 
 
 
+
     def rssCheck(podcastName, source, url):
         """
-
+        Checks the rss urls in the database and returns an array of each of the important fields
         """
         try:
             headers = {'Accept':'text/html, application/xhtml+xml, application/xml; q=0.9, */*; q=0.8' ,'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/64.0.3282.140 Safari/537.36 Edge/18.17763'}
@@ -427,18 +429,22 @@ class DatabaseInteract:
             root = etree.fromstring(req.text)
             rssArray = []
             for element in root[0].iter('item'):
-                title = element.find("title").text.replace("''", "'")
-                description = element.find("description").text.replace("<strong>", "").replace("</strong>", "").replace("&amp;", "and").replace("'","''")
-                date = element.find("pubDate").text
-                date = date.split(" ")
-                date = datetime.strptime(date[1] + date[2] + date[3], "%d%b%Y")
-                dateString = str(date.month) + "-" + str(date.day) + "-" + str(date.year)
-                urlDos = ResolveRouter.urlRouter(podcastName, source, element)
-                if(len(title) > 0 and len(description) > 0 and len(dateString) > 0 and len(urlDos) > 0):
-                    rssArray.append([title, dateString, urlDos, description])
+                try:
+                    title = element.find("title").text.replace("''", "'")
+                    description = element.find("description").text.replace("<strong>", "").replace("</strong>", "").replace("&amp;", "and").replace("'","''")
+                    date = element.find("pubDate").text
+                    date = date.split(" ")
+                    date = datetime.strptime(date[1] + date[2] + date[3], "%d%b%Y")
+                    dateString = str(date.month) + "-" + str(date.day) + "-" + str(date.year)
+                    url = ResolveRouter.urlRouter(podcastName, source, element)
+                except:
+                    print("error in XMLDetailsDebug parsing issue")
+                if(len(title) > 0 and len(description) > 0 and len(dateString) > 0 and len(url) > 0):
+                    rssArray.append([title, dateString, url, description])
                 else:
                     print("error in XMLDetailsDebug parsing issue")
             return rssArray
         except Exception as e:
             print(e)
             Tools.writeException("getXMLDetailsDebug", e)
+

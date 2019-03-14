@@ -27,7 +27,7 @@ class Transcribe:
         fileContent = DatabaseInteract.checkPre(dbConnection)
         if(len(fileContent) > 0 and Tools.numRunningProcesses() < maxConcurrent):
             cursor = dbConnection.cursor()
-            cursor.execute("UPDATE transcriptions SET pending = TRUE WHERE id = '" + fileContent[1] + "';")
+            cursor.execute("UPDATE transcriptions SET pending = TRUE WHERE id = '" + str(fileContent[1]) + "';")
             dbConnection.commit()
             cursor.close()
             url = fileContent[0]
@@ -76,12 +76,12 @@ class Transcribe:
             try:
                 rtf = nhContent[0][count]
                 transcription = nhContent[1][count].replace("'", "''").replace("_", "")
-                dbID = nhContent[2][count]
+                dbID = nhContent[2][count].replace(".", "")
                 duration = nhContent[3][count]
                 DatabaseInteract.insertTranscription(dbconnection, rtf, transcription, duration, dbID)
                 count += 1
             except:
-                print("couldnt upload one at index " + count)
+                print("couldnt upload one at index " + str(count))
 
 
 
@@ -433,11 +433,12 @@ class DatabaseInteract:
                 date = date.split(" ")
                 date = datetime.strptime(date[1] + date[2] + date[3], "%d%b%Y")
                 dateString = str(date.month) + "-" + str(date.day) + "-" + str(date.year)
-                url = ResolveRouter.urlRouter(podcastName, source, element)
-                if(len(title) > 0 and len(description) > 0 and len(dateString) > 0 and len(url) > 0):
-                    rssArray.append([title, dateString, url, description])
+                urlDos = ResolveRouter.urlRouter(podcastName, source, element)
+                if(len(title) > 0 and len(description) > 0 and len(dateString) > 0 and len(urlDos) > 0):
+                    rssArray.append([title, dateString, urlDos, description])
                 else:
                     print("error in XMLDetailsDebug parsing issue")
             return rssArray
         except Exception as e:
-            Tools.writeException("getXMLDetailsDebug", e + " with url " + url + " and podcastName " + podcastName)
+            print(e)
+            Tools.writeException("getXMLDetailsDebug", e)

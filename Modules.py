@@ -83,7 +83,7 @@ class Transcribe:
                 count += 1
             except:
                 print("couldnt upload one at index " + str(count))
-
+                count += 1
 
 
 
@@ -210,7 +210,10 @@ class Tools:
         """
         try:
             proc = subprocess.run("ps -Af|grep -i \"online2-wav-nnet3-latgen-faster\"", stdout=subprocess.PIPE, shell=True)
-            return (len(str(proc.stdout).split("\\n")) - 3)
+            np = (len(str(proc.stdout).split("\\n")) - 3)
+            if(np == None):
+                np = 0
+            return np
         except Exception as e:
 		        Tools.writeException("numRunningProcesses", e)
         return -1

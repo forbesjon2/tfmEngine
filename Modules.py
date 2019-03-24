@@ -355,7 +355,7 @@ class DatabaseInteract:
         """
         try:
             cursor = dbConnection.cursor()
-            cursor.execute("UPDATE transcriptions SET pending = TRUE WHERE COALESCE(transcription, '') = '';")
+            cursor.execute("UPDATE transcriptions SET pending = FALSE WHERE COALESCE(transcription, '') = '';")
             dbConnection.commit()
             cursor.close()
         except Exception as e:
